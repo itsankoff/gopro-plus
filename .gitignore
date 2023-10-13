@@ -6,6 +6,9 @@ __pycache__/
 # direnv dependency
 .envrc
 
+# output artifacts
+*.zip
+
 # C extensions
 *.so
 
