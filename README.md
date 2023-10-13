@@ -1,2 +1,2 @@
 # gopro-plus
-GoPro Plus experimental API
+GoPro Plus Cloud experimental API
