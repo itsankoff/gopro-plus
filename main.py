@@ -1,6 +1,7 @@
 import os
-import requests
 import sys
+import json
+import requests
 
 sys.stdout = open(1, "w", encoding="utf-8", closefd=False)
 
@@ -12,11 +13,9 @@ class GoProPlus:
     def get_ids_from_media(self, media):
         return [x["id"] for x in media]
 
-    def get_media(self):
+    def get_media(self, pages=1, per_page=30):
         media_url = "{}/media/search".format(self.host)
-        params = {
-#             "fields": "captured_at,content_title,content_type,created_at,gopro_user_id,file_size,id,token,type,resolution,filename,file_extension"
-        }
+
         headers = {
             "Accept-Charset": "utf-8",
             "Accept": "application/vnd.gopro.jk.media+json; version=2.0.0",
@@ -24,10 +23,32 @@ class GoProPlus:
             "Authorization": "Bearer {}".format(self.auth_token),
         }
 
-        resp = requests.get(media_url, params=params, headers=headers)
-        content = resp.json()
-        media = content["_embedded"]["media"]
-        return media
+        output_media = []
+        total_pages = 0
+        current_page = 1
+        while True:
+            params = {
+                # for all fields check some requests on GoProPlus website requests
+                "fields": "id,created_at,content_title,filename,file_extension",
+                "per_page": per_page,
+                "page": current_page,
+            }
+
+            resp = requests.get(media_url, params=params, headers=headers)
+            content = resp.json()
+            output_media += content["_embedded"]["media"]
+
+            if total_pages == 0:
+                total_pages = content["_pages"]["total_pages"]
+
+            if current_page >= pages or current_page >= total_pages:
+                print("reaching number of pages {}".format(current_page))
+                break
+
+            current_page += 1
+
+        return output_media
+
 
     def download_media_ids(self, ids, filename):
         print("attempting to download {}".format(",".join(ids)))
@@ -71,11 +92,14 @@ def main():
     auth_token = os.environ["AUTH_TOKEN"]
     gpp = GoProPlus(auth_token)
 
-    media = gpp.get_media()
+    media = gpp.get_media(pages=43)
+#     print(media)
+
     ids = gpp.get_ids_from_media(media)
+    print(ids)
 
     filename = './download.zip'
-    gpp.download_media_ids(ids, filename)
+#     gpp.download_media_ids(ids, filename)
 
 
 
