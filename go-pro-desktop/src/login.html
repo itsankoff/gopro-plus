@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - GoPro App</title>
+    <link rel="stylesheet" href="styles/login.css">
+  </head>
+<body>
+  <h1>Login</h1>
+  <form id="login-form">
+    <label for="jwt-token">JWT Token:</label>
+    <input type="text" id="jwt-token" required>
+    <button type="submit">Login</button>
+  </form>
+  <div id="loader" class="loader"></div>
+
+  <script src="renderer.js"></script>
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async (event) => {
+      console.log("Capturing JWT token from form");
+
+      event.preventDefault();
+      const jwtToken = document.getElementById('jwt-token').value;
+
+      // Show the loader
+      document.getElementById('loader').style.display = 'block';
+
+      // TODO: Validate the JWT token by making a request to the GoProPlus cloud API
+      const isValidToken = true; // Replace this with the actual validation logic
+
+      if (isValidToken) {
+        console.log("JWT token is valid");
+
+        // Store the JWT token securely using electron-store
+        //const Store = require('electron-store');
+        //const store = new Store();
+        //store.set('jwtToken', jwtToken);
+
+        // Redirect to the gallery page
+        window.location.href = 'gallery.html';
+
+        // Hide the loader
+        document.getElementById('loader').style.display = 'none';
+      } else {
+        // Hide the loader
+        document.getElementById('loader').style.display = 'none';
+
+        alert('Invalid JWT token. Please try again.');
+      }
+    });
+  </script>
+</body>
+</html>

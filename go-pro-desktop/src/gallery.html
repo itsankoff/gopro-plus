@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery - GoPro App</title>
+    <link rel="stylesheet" href="styles/gallery.css">
+  </head>
+<body>
+  <h1>Media Gallery</h1>
+  <div id="gallery-container"></div>
+  <div id="loader" class="loader"></div>
+
+  <script src="renderer.js"></script>
+  <script>
+  //const Store = require('electron-store');
+  //const store = new Store();
+  //const jwtToken = store.get('jwtToken');
+  const jwtToken = "eyJhbGciOiJSU0EtT0FFUCIsImVuYyI6IkExMjhHQ00ifQ.a7V7ZRCmmKSx102lgzynwKlew37g7BgoqR4wQR5dzFWDZk6wKUIWMgM8X5XNqWI66V0FWZdtnckPDz2lOeMRXkKW0xgkt-6wETPtIhyJpfOWmfbBVJ1-vsFtpAA163kOnESFcpqH2EGNy7xZHDvWTilwlaVdTMGPTagOVvwQKn7UQNgOiyWXW48sv4cspGj7EtblCDBrna603r2YtDhD-41qDp6XcL39ugyRO3I_EK96CaZkeEEstLMCBRX2By_heJkkl85ev_0JAG45_ZsDBG2KpX4E1hs7ek7Ox5ouQcOeb3JLAY-0pfpXAPXV75XUDkN3FQC6ilLhmN_D1LV-8w.4k6wZ89I0YDIuQqm.Nrwk9PBoz-dfvfpsNOAfoSXTtcZLaD_1bHHNTVaxzHet_GVw2SGjgD0L_Bow2D9HJeVnA5Lc-l3uPNACc279VRADZtacgQpvRw4o7zuUAT9jtAo-sDqQLAZgvBKyjCDXbuwpVtuHEsLXjeLXLXIyHEojFLpm2ON5kCxhuAZigoP97cBX_qz8ef9gaPoBytiweaXf2MSFDTaksw9FNeuWtaqslxBtM3TMu3u3eQUecQfcsql7M_v3Acm49DKqkH21oHE5C4mnF1fmRK7Lje5w-pxu9W7UZRwcAXmLNm5nUmfP31zpobKar2C3-KLhlO97_sS71kjUDvkk2jUj-3KnGNwZSaIYHiDbmE1vPkrkXoeUoIt3vQQeCKKxklL3DPnT-XbFuVTSdrDnfWo0BIOpejncDbVEQ-Qw4aj5c-pJVzC5ISzC0xdGuk7Hs7dLgQ0aGiQ-4hC_Rp24G-SQvxC8qv3bUTeC6q3u4T7duO86i6zyhKx-2g-2XlvJBNkUYrzgBr9qssrEOTbEUg1R4-bsOsTdn6O1sM1dOyfTliA0dePqncqH1u1KsB2OoH6GyKMtxTM0kkyHO3V3HLL158yW9o2vN5tHG8BkfbmGjDukAVr4ymQhGKmPjyk_-UrDnNuIHHNbUpzffY7UdI29hlxqEAGu2o0TrKRrKIz99IAK4qgZS1urmVDKLqm2x8lcD_OAuhvrnLjGa2ifhBcI6D79br56XLYQMwtdooL5DclnkwJJUc-Gh8_m8NM7Lg1QzfhJ3g-fFjjmCbEmVW03Y2ShDhbp5u5FjWW_3kmqH_uoHcCgInbX8Wj6BA.pZeL4UztndayGS33A1ou-A";
+  const host = "https://api.gopro.com";
+
+  function fetchGoProAssets() {
+    const mediaURL = `${host}/media/search`
+    const perPage = 30;
+    const pages = 1;
+    const currentPage = 1;
+
+    const headers = {
+      "Accept-Charset": "utf-8",
+      "Accept": "application/vnd.gopro.jk.media+json; version=2.0.0",
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${jwtToken}`,
+    }
+    const params = {
+        "fields": "id,created_at,content_title,filename,file_extension",
+        "per_page": perPage,
+        "page": currentPage,
+    }
+
+    fetch(host)
+
+    return [{
+      name: "DJI_001.mp4",
+    },
+    {
+      name: "DJI_002.mp4",
+    }]
+  };
+
+  async function renderAssets(assets) {
+    // Show the loader
+    document.getElementById('loader').style.display = 'block';
+
+    // Display the assets in the gallery
+    const galleryContainer = document.getElementById('gallery-container');
+
+    assets.forEach(asset => {
+      const assetElement = document.createElement('div');
+      assetElement.className = 'asset';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.addEventListener('change', () => {
+        assetElement.classList.toggle('selected');
+      });
+      assetElement.appendChild(checkbox);
+
+      const nameElement = document.createElement('span');
+      nameElement.textContent = asset.name;
+      assetElement.appendChild(nameElement);
+
+      galleryContainer.appendChild(assetElement);
+    });
+
+    // Hide the loader
+    document.getElementById('loader').style.display = 'none';
+  }
+
+  const assets = fetchGoProAssets();
+  renderAssets(assets);
+  </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+.asset {
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin: 10px;
+  display: inline-block;
+}
+
+.asset.selected {
+  border: 2px solid #3498db;
+}

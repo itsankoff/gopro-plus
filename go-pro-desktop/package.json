@@ -2,8 +2,9 @@
   "name": "go-pro-desktop",
   "version": "1.0.0",
   "description": "Desktop application for GoPro Media Library",
-  "main": "index.js",
+  "main": "src/main.js",
   "scripts": {
+    "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -17,6 +18,11 @@
   },
   "homepage": "https://github.com/itsankoff/gopro-plus#readme",
   "dependencies": {
-    "electron": "^27.0.2"
+    "electron": "^27.0.2",
+    "electron-fetch": "^1.9.1",
+    "electron-store": "^8.1.0"
+  },
+  "devDependencies": {
+    "electron-reloader": "^1.2.3"
   }
 }
