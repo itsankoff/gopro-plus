@@ -7,18 +7,41 @@ sys.stdout = open(1, "w", encoding="utf-8", closefd=False)
 
 class GoProPlus:
     def __init__(self, auth_token):
-        self.host = "https://api.gopro.com"
+        self.base = "api.gopro.com"
+        self.host = "https://{}".format(self.base)
         self.auth_token = auth_token
+
+    def validate(self):
+        headers = {
+            "Authorization": "Bearer {}".format(self.auth_token),
+        }
+
+        resp = requests.get("{}/search/media/labels/top?count=1".format(self.host), headers=headers)
+        if resp.status_code != 200:
+            print("failed to validate auth token. issue a new one")
+            return False
+
+        return True
+
+    def parse_error(self, resp):
+        try:
+            err = resp.json()
+        except:
+            err = resp.text
+        return errk
 
     def get_ids_from_media(self, media):
         return [x["id"] for x in media]
 
-    def get_media(self, pages=1, per_page=30):
+    def get_media(self, pages=sys.maxsize, per_page=30):
         media_url = "{}/media/search".format(self.host)
 
         headers = {
+            "Authority": self.base,
             "Accept-Charset": "utf-8",
             "Accept": "application/vnd.gopro.jk.media+json; version=2.0.0",
+            "Origin": self.host,
+            "Referer": "{}/".format(self.host),
             "Content-Type": "application/json",
             "Authorization": "Bearer {}".format(self.auth_token),
         }
@@ -32,9 +55,15 @@ class GoProPlus:
                 "fields": "id,created_at,content_title,filename,file_extension",
                 "per_page": per_page,
                 "page": current_page,
+                "type": "",
             }
 
             resp = requests.get(media_url, params=params, headers=headers)
+            if resp.status_code != 200:
+                err = self.parse_error(resp)
+                print("failed to get media for page {}: {}. try renewing the auth token".format(current_page, err))
+                return False
+
             content = resp.json()
             output_media += content["_embedded"]["media"]
 
@@ -45,6 +74,7 @@ class GoProPlus:
                 print("reaching number of pages {}".format(current_page))
                 break
 
+            print("page parsed ({}/{})".format(current_page, total_pages))
             current_page += 1
 
         return output_media
@@ -67,7 +97,12 @@ class GoProPlus:
         resp = requests.get(download_url, params=params, headers=headers, stream=True)
         print("request completed")
 
+        if resp.status_code != 200:
+            print("request failed with status code: {} and error: {}".format(resp.status_code, self.parse_error(resp)))
+            return False
+
         downloaded_size = 0
+        print('downloading...')
         with open(filename, 'wb') as file:
             # Iterate over the response in chunks 8K chunks
             for chunk in resp.iter_content(chunk_size=8192):
@@ -91,14 +126,16 @@ def main():
 
     auth_token = os.environ["AUTH_TOKEN"]
     gpp = GoProPlus(auth_token)
+    if not gpp.validate():
+        return -1
 
-    media = gpp.get_media(pages=43)
+    media = gpp.get_media()
 #     print(media)
 
     ids = gpp.get_ids_from_media(media)
     print(ids)
 
-    filename = './download.zip'
+#     filename = './download.zip'
 #     gpp.download_media_ids(ids, filename)
 
 
