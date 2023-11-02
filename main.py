@@ -129,14 +129,12 @@ def main():
     if not gpp.validate():
         return -1
 
-    media = gpp.get_media()
-#     print(media)
-
+    media = gpp.get_media(pages=1)
     ids = gpp.get_ids_from_media(media)
     print(ids)
 
-#     filename = './download.zip'
-#     gpp.download_media_ids(ids, filename)
+    filename = './download.zip'
+    gpp.download_media_ids(ids, filename)
 
 
 
