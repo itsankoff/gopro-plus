@@ -51,6 +51,9 @@ class GoProPlus:
     def get_ids_from_media(self, media):
         return [x["id"] for x in media]
 
+    def get_filenames_from_media(self, media):
+        return [x["filename"] for x in media]
+
     def get_media(self, pages=sys.maxsize, per_page=30):
         media_url = "{}/media/search".format(self.host)
 
@@ -97,7 +100,7 @@ class GoProPlus:
         return output_media
 
 
-    def download_media_ids(self, ids, filename):
+    def download_media_ids(self, ids, filepath):
         download_url = "{}/media/x/zip/source".format(self.host)
         params = {
             "ids": ",".join(ids),
@@ -114,8 +117,8 @@ class GoProPlus:
             return False
 
         downloaded_size = 0
-        print('downloading...')
-        with open(filename, 'wb') as file:
+        print('downloading to {}'.format(filepath))
+        with open(filepath, 'wb') as file:
             # Iterate over the response in chunks 8K chunks
             for chunk in resp.iter_content(chunk_size=8192):
                 # Write the chunk to the file
@@ -133,10 +136,11 @@ class GoProPlus:
 
 def main():
     actions = ["list", "download"]
-    parser = argparse.ArgumentParser(prog='gopro')
-    parser.add_argument('--action', help="support actions: {}".format(",".join(actions)), default="download")
-    parser.add_argument('--pages', nargs='?', help='number of pages to iterate over', type=int, default=sys.maxsize)
-    parser.add_argument('--per-page', nargs='?', help='number of items per page', type=int, default=30)
+    parser = argparse.ArgumentParser(prog="gopro")
+    parser.add_argument("--action", help="support actions: {}".format(",".join(actions)), default="download")
+    parser.add_argument("--pages", nargs="?", help="number of pages to iterate over", type=int, default=sys.maxsize)
+    parser.add_argument("--per-page", nargs="?", help="number of items per page", type=int, default=30)
+    parser.add_argument("--download-path", help="path to store the download zip", default="./download.zip")
 
     args = parser.parse_args()
 
@@ -150,13 +154,13 @@ def main():
         return -1
 
     media = gpp.get_media(pages=args.pages, per_page=args.per_page)
-    ids = gpp.get_ids_from_media(media)
-    print("listing media ids: {}".format(ids))
+    filenames = gpp.get_filenames_from_media(media)
+    print("listing media: {}".format(filenames))
 
     if args.action == "download":
-        filename = './download.zip'
-        gpp.download_media_ids(ids, filename)
-
+        filepath = args.download_path
+        ids = gpp.get_ids_from_media(media)
+        gpp.download_media_ids(ids, filepath)
 
 
 if __name__ == "__main__":
