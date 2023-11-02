@@ -3,9 +3,24 @@ import sys
 import json
 import argparse
 
+import signal
+import readchar
+
 import requests
 
 sys.stdout = open(1, "w", encoding="utf-8", closefd=False)
+
+def handler(signum, frame):
+    print("interrupting the process. do you really want to exit? y/n ")
+
+    res = readchar.readchar()
+    if res == 'y':
+        print("stopping the process!")
+        exit(1)
+    else:
+        print("continue executing...")
+
+signal.signal(signal.SIGINT, handler)
 
 
 class GoProPlus:
