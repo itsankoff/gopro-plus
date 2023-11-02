@@ -1,3 +1,10 @@
+# Assets
+*.MOV
+*.mov
+
+*.MP4
+*.mp4
+
 # Node
 node_modules
 
