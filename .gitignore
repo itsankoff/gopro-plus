@@ -5,6 +5,9 @@
 *.MP4
 *.mp4
 
+# macos
+.DS_*
+
 # Node
 node_modules
 
