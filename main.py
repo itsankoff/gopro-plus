@@ -98,8 +98,6 @@ class GoProPlus:
 
 
     def download_media_ids(self, ids, filename):
-        print("attempting to download {}".format(",".join(ids)))
-
         download_url = "{}/media/x/zip/source".format(self.host)
         params = {
             "ids": ",".join(ids),
@@ -110,10 +108,7 @@ class GoProPlus:
             "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
         }
 
-        print("making request to {}".format(download_url, params, headers))
         resp = requests.get(download_url, params=params, headers=headers, stream=True)
-        print("request completed")
-
         if resp.status_code != 200:
             print("request failed with status code: {} and error: {}".format(resp.status_code, self.parse_error(resp)))
             return False
@@ -139,7 +134,7 @@ class GoProPlus:
 def main():
     actions = ["list", "download"]
     parser = argparse.ArgumentParser(prog='gopro')
-    parser.add_argument('--action', help="support actions: {}".format(",".join(actions)))
+    parser.add_argument('--action', help="support actions: {}".format(",".join(actions)), default="download")
     parser.add_argument('--pages', nargs='?', help='number of pages to iterate over', type=int, default=sys.maxsize)
     parser.add_argument('--per-page', nargs='?', help='number of items per page', type=int, default=30)
 
@@ -156,7 +151,7 @@ def main():
 
     media = gpp.get_media(pages=args.pages, per_page=args.per_page)
     ids = gpp.get_ids_from_media(media)
-    print(ids)
+    print("listing media ids: {}".format(ids))
 
     if args.action == "download":
         filename = './download.zip'
