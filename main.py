@@ -1,9 +1,12 @@
 import os
 import sys
 import json
+import argparse
+
 import requests
 
 sys.stdout = open(1, "w", encoding="utf-8", closefd=False)
+
 
 class GoProPlus:
     def __init__(self, auth_token):
@@ -70,8 +73,7 @@ class GoProPlus:
             if total_pages == 0:
                 total_pages = content["_pages"]["total_pages"]
 
-            if current_page >= pages or current_page >= total_pages:
-                print("reaching number of pages {}".format(current_page))
+            if current_page > pages or current_page > total_pages:
                 break
 
             print("page parsed ({}/{})".format(current_page, total_pages))
@@ -120,6 +122,13 @@ class GoProPlus:
 
 
 def main():
+    actions = ["list", "download"]
+    parser = argparse.ArgumentParser(prog='gopro')
+    parser.add_argument('--action', help="support actions: {}".format(",".join(actions)))
+    parser.add_argument('--pages', nargs='?', help='number of pages to iterate over', type=int)
+
+    args = parser.parse_args()
+
     if "AUTH_TOKEN" not in os.environ:
         print("invalid AUTH_TOKEN env variable set")
         return
@@ -129,12 +138,17 @@ def main():
     if not gpp.validate():
         return -1
 
-    media = gpp.get_media(pages=1)
+    pages = args.pages
+    if pages == None or pages == 0:
+        pages = sys.maxsize
+
+    media = gpp.get_media(pages=pages)
     ids = gpp.get_ids_from_media(media)
     print(ids)
 
-    filename = './download.zip'
-    gpp.download_media_ids(ids, filename)
+    if args.action == "download":
+        filename = './download.zip'
+        gpp.download_media_ids(ids, filename)
 
 
 
