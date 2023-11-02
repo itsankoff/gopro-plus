@@ -11,7 +11,7 @@ import requests
 sys.stdout = open(1, "w", encoding="utf-8", closefd=False)
 
 def handler(signum, frame):
-    print("interrupting the process. do you really want to exit? y/n ")
+    print("\ninterrupting the process. do you really want to exit? (y/n) ")
 
     res = readchar.readchar()
     if res == 'y':
@@ -46,7 +46,7 @@ class GoProPlus:
             err = resp.json()
         except:
             err = resp.text
-        return errk
+        return err
 
     def get_ids_from_media(self, media):
         return [x["id"] for x in media]
@@ -140,7 +140,8 @@ def main():
     actions = ["list", "download"]
     parser = argparse.ArgumentParser(prog='gopro')
     parser.add_argument('--action', help="support actions: {}".format(",".join(actions)))
-    parser.add_argument('--pages', nargs='?', help='number of pages to iterate over', type=int)
+    parser.add_argument('--pages', nargs='?', help='number of pages to iterate over', type=int, default=sys.maxsize)
+    parser.add_argument('--per-page', nargs='?', help='number of items per page', type=int, default=30)
 
     args = parser.parse_args()
 
@@ -153,11 +154,7 @@ def main():
     if not gpp.validate():
         return -1
 
-    pages = args.pages
-    if pages == None or pages == 0:
-        pages = sys.maxsize
-
-    media = gpp.get_media(pages=pages)
+    media = gpp.get_media(pages=args.pages, per_page=args.per_page)
     ids = gpp.get_ids_from_media(media)
     print(ids)
 
