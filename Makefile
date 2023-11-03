@@ -24,13 +24,14 @@ run: clean
 		-e ACTION=$(ACTION) \
 		-e PAGES=$(PAGES) \
 		-e PER_PAGE=$(PER_PAGE) \
+		-e DOWNLOAD_PATH=$(DOWNLOAD_PATH) \
 		$(IMAGE_WITH_VERSION)
 
 stop:
 	@docker stop $(CONTAINER_NAME) || true
 
 logs:
-	@docker logs $(CONTAINER_NAME)
+	@docker logs -f $(CONTAINER_NAME)
 
 clean: stop
 	@docker rm $(CONTAINER_NAME) || true
