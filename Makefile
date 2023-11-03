@@ -26,7 +26,7 @@ run: clean
 		$(IMAGE_WITH_VERSION)
 
 release:
-	@docker buildx build --platform $(BUILD_PLATFORMS) -t $(IMAGE_WITH_VERSION) --push .
+	@docker buildx build --platform $(BUILD_PLATFORMS) -t $(IMAGE_WITH_VERSION) -t $(IMAGE):latest --push .
 
 stop:
 	@docker stop $(CONTAINER_NAME) || true
