@@ -4,7 +4,7 @@ CONTAINER_NAME ?= gopro
 ACTION ?= download
 PAGES ?= 1
 PER_PAGE ?= 2
-DOWNLOAD_PATH ?= ./download/download.zip
+DOWNLOAD_PATH ?= ./download
 
 IMAGE := itsankoff/gopro
 VERSION := $(shell cat VERSION.txt)

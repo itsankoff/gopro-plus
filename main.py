@@ -67,7 +67,7 @@ class GoProPlus:
             "Authorization": "Bearer {}".format(self.auth_token),
         }
 
-        output_media = []
+        output_media = {}
         total_pages = 0
         current_page = 1
         while True:
@@ -86,12 +86,12 @@ class GoProPlus:
                 return []
 
             content = resp.json()
-            output_media += content["_embedded"]["media"]
+            output_media[current_page] = content["_embedded"]["media"]
 
             if total_pages == 0:
                 total_pages = content["_pages"]["total_pages"]
 
-            if current_page > pages or current_page > total_pages:
+            if current_page >= pages or current_page >= total_pages:
                 break
 
             print("page parsed ({}/{})".format(current_page, total_pages))
@@ -153,18 +153,19 @@ def main():
     if not gpp.validate():
         return -1
 
-    media = gpp.get_media(pages=args.pages, per_page=args.per_page)
-    if not media:
+    media_pages = gpp.get_media(pages=args.pages, per_page=args.per_page)
+    if not media_pages:
         print('failed to get media')
         return -1
 
-    filenames = gpp.get_filenames_from_media(media)
-    print("listing media: {}".format(filenames))
+    for page, media in media_pages.items():
+        filenames = gpp.get_filenames_from_media(media)
+        print("listing page({}) media({})".format(page, filenames))
 
-    if args.action == "download":
-        filepath = args.download_path
-        ids = gpp.get_ids_from_media(media)
-        gpp.download_media_ids(ids, filepath)
+        if args.action == "download":
+            filepath = "{}/{}_page.zip".format(args.download_path, page)
+            ids = gpp.get_ids_from_media(media)
+            gpp.download_media_ids(ids, filepath)
 
 
 if __name__ == "__main__":
