@@ -8,6 +8,7 @@ to use the web interface.
 **GoPro Plus supports downloading more than 25 media files at a time which is a
 tedious 🤦 limitation enforced by GoPro Media Library website.**
 
+ 🐳 Docker hub: https://hub.docker.com/repository/docker/itsankoff/gopro/general
 
 ## Usage (Docker environment)
 * `docker pull itsankoff/gopro`
