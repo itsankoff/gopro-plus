@@ -53,6 +53,16 @@ To run GoPro Plus locally on your machine, follow these steps:
 ## Usage (Local environment)
 * `./gopro` - running the help section
 
+## Dev tooling
+* `Makefile` - check for convenient shortcuts
+    * `build` - build a docker container
+    * `run` - run as local docker container
+    * `release` - building the docker image for multiple platforms.
+    * `stop` - stop docker container
+    * `logs` - show docker logs in a follow mode
+    * `clean` - stop and remove spawned containers
+
+* `Dockerfile` - base configuration for the docker image
 
 ## Setting Up AUTH_TOKEN as Environment Variable
 
