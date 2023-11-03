@@ -5,6 +5,7 @@ ACTION ?= download
 PAGES ?= 1
 PER_PAGE ?= 2
 DOWNLOAD_PATH ?= ./download
+BUILD_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7
 
 IMAGE := itsankoff/gopro
 VERSION := $(shell cat VERSION.txt)
@@ -13,9 +14,6 @@ AUTH_TOKEN := $(shell echo $$AUTH_TOKEN)
 
 build:
 	@docker build -t $(IMAGE_WITH_VERSION) .
-
-push:
-	@docker push $(IMAGE_WITH_VERSION)
 
 run: clean
 	@docker run -d --name $(CONTAINER_NAME) \
@@ -26,6 +24,9 @@ run: clean
 		-e PER_PAGE=$(PER_PAGE) \
 		-e DOWNLOAD_PATH=$(DOWNLOAD_PATH) \
 		$(IMAGE_WITH_VERSION)
+
+release:
+	@docker buildx build --platform $(BUILD_PLATFORMS) -t $(IMAGE_WITH_VERSION) --push .
 
 stop:
 	@docker stop $(CONTAINER_NAME) || true
