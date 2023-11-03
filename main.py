@@ -140,13 +140,15 @@ class GoProPlus:
 
 def main():
     actions = ["list", "download"]
+    progress_modes = ["inline", "newline", "noline"]
+
     parser = argparse.ArgumentParser(prog="gopro")
-    parser.add_argument("--action", help="support actions: {}".format(",".join(actions)), default="download")
+    parser.add_argument("--action", help="action to execute. supported actions: {}".format(",".join(actions)), default="download")
     parser.add_argument("--pages", nargs="?", help="number of pages to iterate over", type=int, default=sys.maxsize)
     parser.add_argument("--per-page", nargs="?", help="number of items per page", type=int, default=30)
     parser.add_argument("--start-page", nargs="?", help="starting page", type=int, default=1)
     parser.add_argument("--download-path", help="path to store the download zip", default="./download")
-    parser.add_argument("--progress-mode", help="showing download progress. options: inline,newline,noline", default="inline")
+    parser.add_argument("--progress-mode", help="showing download progress. supported modes: {}".format(",".join(progress_modes)), default=progress_modes[0])
 
     args = parser.parse_args()
 
