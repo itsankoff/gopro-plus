@@ -54,7 +54,7 @@ class GoProPlus:
     def get_filenames_from_media(self, media):
         return [x["filename"] for x in media]
 
-    def get_media(self, pages=sys.maxsize, per_page=30):
+    def get_media(self, start_page=1, pages=sys.maxsize, per_page=30):
         media_url = "{}/media/search".format(self.host)
 
         headers = {
@@ -69,7 +69,7 @@ class GoProPlus:
 
         output_media = {}
         total_pages = 0
-        current_page = 1
+        current_page = start_page
         while True:
             params = {
                 # for all fields check some requests on GoProPlus website requests
@@ -87,14 +87,14 @@ class GoProPlus:
 
             content = resp.json()
             output_media[current_page] = content["_embedded"]["media"]
+            print("page parsed ({}/{})".format(current_page, total_pages))
 
             if total_pages == 0:
                 total_pages = content["_pages"]["total_pages"]
 
-            if current_page >= pages or current_page >= total_pages:
+            if current_page >= (start_page + pages) - 1 or current_page >= total_pages:
                 break
 
-            print("page parsed ({}/{})".format(current_page, total_pages))
             current_page += 1
 
         return output_media
@@ -144,6 +144,7 @@ def main():
     parser.add_argument("--action", help="support actions: {}".format(",".join(actions)), default="download")
     parser.add_argument("--pages", nargs="?", help="number of pages to iterate over", type=int, default=sys.maxsize)
     parser.add_argument("--per-page", nargs="?", help="number of items per page", type=int, default=30)
+    parser.add_argument("--start-page", nargs="?", help="starting page", type=int, default=1)
     parser.add_argument("--download-path", help="path to store the download zip", default="./download")
     parser.add_argument("--progress-mode", help="showing download progress. options: inline,newline,noline", default="inline")
 
@@ -158,7 +159,7 @@ def main():
     if not gpp.validate():
         return -1
 
-    media_pages = gpp.get_media(pages=args.pages, per_page=args.per_page)
+    media_pages = gpp.get_media(start_page=args.start_page, pages=args.pages, per_page=args.per_page)
     if not media_pages:
         print('failed to get media')
         return -1
