@@ -92,7 +92,7 @@ class GoProPlus:
             if total_pages == 0:
                 total_pages = content["_pages"]["total_pages"]
 
-            if current_page >= (start_page + pages) - 1 or current_page >= total_pages:
+            if current_page >= total_pages or current_page >= (start_page + pages) - 1:
                 break
 
             current_page += 1

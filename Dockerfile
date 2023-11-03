@@ -10,10 +10,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 ENV AUTH_TOKEN "<GOPRO_AUTH_TOKEN>"
 ENV ACTION "download"
 ENV START_PAGE  "1"
-ENV PAGES "1"
-ENV PER_PAGE "30"
+# Should mean all
+ENV PAGES "1000000"
+ENV PER_PAGE "15"
 ENV DOWNLOAD_PATH "./download"
-ENV PROGRESS_MODE "newline"
+ENV PROGRESS_MODE "noline"
 
 EXPOSE 80
 
