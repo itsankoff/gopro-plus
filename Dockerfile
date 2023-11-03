@@ -16,6 +16,4 @@ ENV PER_PAGE "15"
 ENV DOWNLOAD_PATH "./download"
 ENV PROGRESS_MODE "noline"
 
-EXPOSE 80
-
 CMD ["sh", "-c", "python3 main.py --action $ACTION --start-page $START_PAGE --pages $PAGES --per-page $PER_PAGE --download-path $DOWNLOAD_PATH --progress-mode $PROGRESS_MODE"]
