@@ -12,6 +12,7 @@ ENV ACTION "download"
 ENV PAGES "1"
 ENV PER_PAGE "30"
 ENV DOWNLOAD_PATH "./download"
+ENV PROGRESS_MODE "newline"
 
 EXPOSE 80
 
