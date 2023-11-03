@@ -140,7 +140,7 @@ def main():
     parser.add_argument("--action", help="support actions: {}".format(",".join(actions)), default="download")
     parser.add_argument("--pages", nargs="?", help="number of pages to iterate over", type=int, default=sys.maxsize)
     parser.add_argument("--per-page", nargs="?", help="number of items per page", type=int, default=30)
-    parser.add_argument("--download-path", help="path to store the download zip", default="./download.zip")
+    parser.add_argument("--download-path", help="path to store the download zip", default="./download")
 
     args = parser.parse_args()
 
