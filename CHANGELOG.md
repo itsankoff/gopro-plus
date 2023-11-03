@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 1.3.3
+* Link Dockerfile ENV variables to execution script
+
 ## 1.3.2
 * Support --start-page cli argument to support skipping already downloaded
 pages of media assets
