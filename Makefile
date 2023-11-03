@@ -34,5 +34,3 @@ logs:
 
 clean: stop
 	@docker rm $(CONTAINER_NAME) || true
-
-

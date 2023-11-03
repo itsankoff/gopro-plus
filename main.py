@@ -83,7 +83,7 @@ class GoProPlus:
             if resp.status_code != 200:
                 err = self.parse_error(resp)
                 print("failed to get media for page {}: {}. try renewing the auth token".format(current_page, err))
-                return False
+                return []
 
             content = resp.json()
             output_media += content["_embedded"]["media"]
@@ -154,6 +154,10 @@ def main():
         return -1
 
     media = gpp.get_media(pages=args.pages, per_page=args.per_page)
+    if not media:
+        print('failed to get media')
+        return -1
+
     filenames = gpp.get_filenames_from_media(media)
     print("listing media: {}".format(filenames))
 
