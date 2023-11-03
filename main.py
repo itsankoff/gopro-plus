@@ -100,7 +100,7 @@ class GoProPlus:
         return output_media
 
 
-    def download_media_ids(self, ids, filepath):
+    def download_media_ids(self, ids, filepath, progress_mode="inline"):
         download_url = "{}/media/x/zip/source".format(self.host)
         params = {
             "ids": ",".join(ids),
@@ -128,8 +128,12 @@ class GoProPlus:
                 downloaded_size += len(chunk)
                 progress = ((downloaded_size / 1024) / 1024)
 
-                # Print the progress
-                print(f"\rdownloaded: {progress:.2f}MB ({downloaded_size}) bytes", end='')
+                if progress_mode == "inline":
+                    # Print the progress
+                    print(f"\rdownloaded: {progress:.2f}MB ({downloaded_size}) bytes", end='')
+
+                if progress_mode == "newline":
+                    print(f"downloaded: {progress:.2f}MB ({downloaded_size}) bytes")
 
         print("\ndownload completed!")
 
@@ -141,6 +145,7 @@ def main():
     parser.add_argument("--pages", nargs="?", help="number of pages to iterate over", type=int, default=sys.maxsize)
     parser.add_argument("--per-page", nargs="?", help="number of items per page", type=int, default=30)
     parser.add_argument("--download-path", help="path to store the download zip", default="./download")
+    parser.add_argument("--progress-mode", help="showing download progress. options: inline,newline,noline", default="inline")
 
     args = parser.parse_args()
 
@@ -165,7 +170,7 @@ def main():
         if args.action == "download":
             filepath = "{}/{}_page.zip".format(args.download_path, page)
             ids = gpp.get_ids_from_media(media)
-            gpp.download_media_ids(ids, filepath)
+            gpp.download_media_ids(ids, filepath, progress_mode=args.progress_mode)
 
 
 if __name__ == "__main__":
