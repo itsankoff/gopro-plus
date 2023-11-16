@@ -1,18 +1,22 @@
-.PHONY: build, push
+.PHONY: docker, release
 
-CONTAINER_NAME ?= gopro
+# Docker default environment
 ACTION ?= download
 PAGES ?= 1
 PER_PAGE ?= 2
 DOWNLOAD_PATH ?= ./download
-BUILD_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7
+AUTH_TOKEN := $(shell echo $$AUTH_TOKEN)
 
+# Docker container
+CONTAINER_NAME ?= gopro
+
+# Docker image
+BUILD_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7
 IMAGE := itsankoff/gopro
 VERSION := $(shell cat VERSION.txt)
 IMAGE_WITH_VERSION = $(IMAGE):$(VERSION)
-AUTH_TOKEN := $(shell echo $$AUTH_TOKEN)
 
-build:
+docker:
 	@docker build -t $(IMAGE_WITH_VERSION) .
 
 run: clean
