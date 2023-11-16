@@ -16,9 +16,6 @@ IMAGE := itsankoff/gopro
 VERSION := $(shell cat VERSION.txt)
 IMAGE_WITH_VERSION = $(IMAGE):$(VERSION)
 
-docker:
-	@docker build -t $(IMAGE_WITH_VERSION) .
-
 run: clean
 	@docker run -d --name $(CONTAINER_NAME) \
 		-v ./download:/app/download \
@@ -29,9 +26,6 @@ run: clean
 		-e DOWNLOAD_PATH=$(DOWNLOAD_PATH) \
 		$(IMAGE_WITH_VERSION)
 
-release:
-	@docker buildx build --platform $(BUILD_PLATFORMS) -t $(IMAGE_WITH_VERSION) -t $(IMAGE):latest --push .
-
 stop:
 	@docker stop $(CONTAINER_NAME) || true
 
@@ -40,3 +34,10 @@ logs:
 
 clean: stop
 	@docker rm $(CONTAINER_NAME) || true
+
+docker:
+	@docker build -t $(IMAGE_WITH_VERSION) .
+
+release:
+	@docker buildx build --platform $(BUILD_PLATFORMS) -t $(IMAGE_WITH_VERSION) -t $(IMAGE):latest --push .
+
