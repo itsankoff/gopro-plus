@@ -5,8 +5,17 @@ import argparse
 
 import signal
 import readchar
+import threading
 
 import requests
+import boto3.session
+
+from boto3.s3.transfer import TransferConfig
+
+transfer_config = TransferConfig(multipart_threshold=1024 * 25, 
+                        max_concurrency=10,
+                        multipart_chunksize=1024 * 25,
+                        use_threads=True)
 
 sys.stdout = open(1, "w", encoding="utf-8", closefd=False)
 
@@ -22,6 +31,24 @@ def handler(signum, frame):
 
 signal.signal(signal.SIGINT, handler)
 
+class ProgressPercentage(object):
+        def __init__(self, filename):
+            self._filename = filename
+            self._size = float(os.path.getsize(filename))
+            self._seen_so_far = 0
+            self._lock = threading.Lock()
+
+        def __call__(self, bytes_amount):
+            # To simplify we'll assume this is hooked up
+            # to a single filename.
+            with self._lock:
+                self._seen_so_far += bytes_amount
+                percentage = (self._seen_so_far / self._size) * 100
+                sys.stdout.write(
+                    "\r%s  %s / %s  (%.2f%%)" % (
+                        self._filename, self._seen_so_far, self._size,
+                        percentage))
+                sys.stdout.flush()
 
 class GoProPlus:
     def __init__(self, auth_token):
@@ -101,41 +128,102 @@ class GoProPlus:
 
 
     def download_media_ids(self, ids, filepath, progress_mode="inline"):
-        download_url = "{}/media/x/zip/source".format(self.host)
-        params = {
-            "ids": ",".join(ids),
-            "access_token": self.auth_token,
-        }
+        # for each id we need to make a request to get the download url
+        resultados = []
 
-        headers = {
-            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        }
+        for id in ids:
+            url = "{}/media/{}/download".format(self.host, id)
+            params = {
+                "access_token": self.auth_token,
+            }
 
-        resp = requests.get(download_url, params=params, headers=headers, stream=True)
-        if resp.status_code != 200:
-            print("request failed with status code: {} and error: {}".format(resp.status_code, self.parse_error(resp)))
-            return False
+            headers = {
+                "accept": "application/json, charset=utf-8",
+                "Authorization": "Bearer {}".format(self.auth_token),
+            }
 
-        downloaded_size = 0
-        print('downloading to {}'.format(filepath))
-        with open(filepath, 'wb') as file:
-            # Iterate over the response in chunks 8K chunks
-            for chunk in resp.iter_content(chunk_size=8192):
-                # Write the chunk to the file
-                file.write(chunk)
+            resp = requests.get(url, params=params, headers=headers).json()
+            url_do_arquivo = resp['_embedded']['files'][0]['url']
+            nome_do_arquivo = url_do_arquivo.split('/')[-1]
+            nome_do_arquivo = resp['filename']
 
-                # Update the downloaded size
-                downloaded_size += len(chunk)
-                progress = ((downloaded_size / 1024) / 1024)
+            caminho_do_arquivo = os.path.join(filepath, nome_do_arquivo)
 
-                if progress_mode == "inline":
-                    # Print the progress
-                    print(f"\rdownloaded: {progress:.2f}MB ({downloaded_size}) bytes", end='')
+            # Tentar fazer o download do arquivo usando streaming
+            try:
+                # Criar um objeto de resposta com streaming ativado
+                r = requests.get(url_do_arquivo, stream=True)
 
-                if progress_mode == "newline":
-                    print(f"downloaded: {progress:.2f}MB ({downloaded_size}) bytes")
+                # Verificar se o código de status da resposta é 200 (OK)
+                if r.status_code == 200:
+                    # Abrir o arquivo em modo de escrita binária
+                    with open(caminho_do_arquivo, 'wb') as f:
+                        # Definir o tamanho do pedaço (chunk) em bytes
+                        tamanho_do_pedaco = 1024 * 1024
 
-        print("\ndownload completed!")
+                        # Obter o tamanho total do arquivo em bytes a partir do cabeçalho da resposta
+                        tamanho_total = int(r.headers.get('content-length', 0))
+
+                        # Inicializar uma variável para armazenar o tamanho baixado em bytes
+                        tamanho_baixado = 0
+
+                        # Percorrer os pedaços da resposta
+                        for pedaco in r.iter_content(tamanho_do_pedaco):
+                            # Escrever o pedaço no arquivo
+                            f.write(pedaco)
+
+                            # Incrementar o tamanho baixado com o tamanho do pedaço
+                            tamanho_baixado += len(pedaco)
+
+                            # Calcular a porcentagem de progresso
+                            porcentagem = int(tamanho_baixado * 100 / tamanho_total)
+
+                            # Mostrar na tela o progresso do download
+                            print(f'Baixando {nome_do_arquivo}: {porcentagem}%')
+
+                    # Fechar o objeto de resposta
+                    r.close()
+
+                    # Mostrar na tela que o download foi concluído com sucesso
+                    print(f'{nome_do_arquivo} baixado com sucesso!')
+
+                    # Adicionar um resultado com status de sucesso na lista de resultados
+                    resultados.append({'id': id, 'status': 'sucesso', 'arquivo': caminho_do_arquivo})
+
+                    # upload to s3
+                    print(f'Uploading: {caminho_do_arquivo} to {os.environ["S3_BUCKET_NAME"]}')
+                    S3_ENDPOINT_URL = "https://" + os.environ["S3_ENDPOINT_URL"]
+                    b2session = boto3.session.Session(aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"], aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
+                    b2 = b2session.resource(service_name='s3', endpoint_url=S3_ENDPOINT_URL)
+                    # bucket = b2.Bucket(os.environ["S3_BUCKET_NAME"])
+                    # obj = bucket.put_object(Body=open(caminho_do_arquivo, mode='rb'),
+                    #                         Key=os.path.basename(caminho_do_arquivo))
+                    b2.Object(os.environ["S3_BUCKET_NAME"], nome_do_arquivo).upload_file(caminho_do_arquivo,
+                            ExtraArgs={'ContentType': 'text/pdf'},
+                            Config=transfer_config,
+                            Callback=ProgressPercentage(caminho_do_arquivo)
+                            )
+                    # Create a response dict with the values returned from B2
+                    # response = {attr: getattr(obj, attr) for attr in ['e_tag', 'version_id']}
+                    # print(f'Success! Response is: {response}')
+                    
+                    # Delete local file
+                    print(f'Deleting local file: {caminho_do_arquivo}')
+                    os.remove(caminho_do_arquivo)
+
+                else:
+                    # Mostrar na tela que o download falhou por causa do código de status
+                    print(f'{nome_do_arquivo} não pôde ser baixado: código de status {r.status_code}')
+
+                    # Adicionar um resultado com status de erro na lista de resultados
+                    resultados.append({'id': id, 'status': 'erro', 'motivo': f'código de status {r.status_code}'})
+
+            except Exception as e:
+                # Mostrar na tela que o download falhou por causa de uma exceção
+                print(f'{nome_do_arquivo} não pôde ser baixado: {e}')
+
+                # Adicionar um resultado com status de erro na lista de resultados
+                resultados.append({'id': id, 'status': 'erro', 'motivo': str(e)})
 
 
 def main():
@@ -171,7 +259,7 @@ def main():
         print("listing page({}) media({})".format(page, filenames))
 
         if args.action == "download":
-            filepath = "{}/{}_page.zip".format(args.download_path, page)
+            filepath = "{}".format(args.download_path)
             ids = gpp.get_ids_from_media(media)
             gpp.download_media_ids(ids, filepath, progress_mode=args.progress_mode)
 
