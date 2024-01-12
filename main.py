@@ -127,7 +127,7 @@ class GoProPlus:
         return output_media
 
 
-    def download_media_ids(self, ids, filepath, progress_mode="inline", action="download"):
+    def download_media_ids(self, ids, filepath, action="download", progress_mode="inline"):
         # for each id we need to make a request to get the download url
         results = []
 
@@ -178,8 +178,13 @@ class GoProPlus:
                             # Calculate the progress percentage
                             percentage = int(downloaded_size * 100 / total_size)
 
-                            # Display the download progress on the screen
-                            print(f'Downloading {file_name}: {percentage}%')
+                            if progress_mode == "inline":
+                              # Display the download progress on the screen
+                              print(f'\rDownloading {file_name}: {percentage}%', end='')
+
+                            if progress_mode == "newline":
+                              # Display the download progress on the screen
+                              print(f'Downloading {file_name}: {percentage}%')
 
                     # Close the response object
                     r.close()
@@ -204,6 +209,7 @@ class GoProPlus:
                               )
                       
                       # Delete local file
+                      print(f"\n")
                       print(f'Deleting local file: {file_path}')
                       os.remove(file_path)
 
@@ -257,7 +263,7 @@ def main():
         if args.action.startswith("download"):
             filepath = "{}".format(args.download_path)
             ids = gpp.get_ids_from_media(media)
-            gpp.download_media_ids(ids, filepath, progress_mode=args.progress_mode, args.action)
+            gpp.download_media_ids(ids, filepath, args.action, progress_mode=args.progress_mode)
 
 
 if __name__ == "__main__":
