@@ -1,5 +1,7 @@
 import os
 import sys
+import time
+from dateutil.parser import parse
 import json
 import argparse
 
@@ -74,12 +76,15 @@ class GoProPlus:
         except:
             err = resp.text
         return err
+    
+    def get_ids_and_dates_from_media(self, media):
+        return [{"id": x["id"], "created_at": x["created_at"]} for x in media]
 
-    def get_ids_from_media(self, media):
-        return [x["id"] for x in media]
+    def get_createdats_from_media(self, media):
+        return [x["created_at"] for x in media]
 
-    def get_filenames_from_media(self, media):
-        return [x["filename"] for x in media]
+    def get_filenames_and_createdats_from_media(self, media):
+        return [{"filename": x["filename"], "created_at": x["created_at"]} for x in media]
 
     def get_media(self, start_page=1, pages=sys.maxsize, per_page=30):
         media_url = "{}/media/search".format(self.host)
@@ -127,12 +132,12 @@ class GoProPlus:
         return output_media
 
 
-    def download_media_ids(self, ids, filepath, action="download", progress_mode="inline"):
+    def download_media_ids(self, ids_with_dates, filepath, action="download", progress_mode="inline"):
         # for each id we need to make a request to get the download url
         results = []
 
-        for id in ids:
-            url = "{}/media/{}/download".format(self.host, id)
+        for item in ids_with_dates:
+            url = "{}/media/{}/download".format(self.host, item['id'])
             params = {
                 "access_token": self.auth_token,
             }
@@ -190,10 +195,22 @@ class GoProPlus:
                     r.close()
 
                     # Display on the screen that the download was successfully completed
-                    print(f'{file_name} download successful!')
+                    print(f'\n{file_name} download successful!')
+
+                    # Set the created_date of the file with item['created_at']
+                    created_date = item['created_at']
+
+                    # Parse the date string to a datetime object
+                    created_date = parse(created_date)
+
+                    # Convert the datetime object to a timestamp
+                    timestamp = created_date.timestamp()
+
+                    # Set the access time and the modification time
+                    os.utime(file_path, (timestamp, timestamp))
 
                     # Add a result with a success status to the results list
-                    results.append({'id': id, 'status': 'sucesso', 'file': file_path})
+                    results.append({'id': item['id'], 'status': 'sucesso', 'file': file_path})
 
                     # upload to s3
                     if action == 'download-upload':
@@ -225,7 +242,7 @@ class GoProPlus:
                 print(f'{file_name} could not be downloaded: {e}')
 
                 # Add a result with an error status to the results list
-                results.append({'id': id, 'status': 'erro', 'reason': str(e)})
+                results.append({'id': item['id'], 'status': 'erro', 'reason': str(e)})
 
 
 def main():
@@ -257,13 +274,15 @@ def main():
         return -1
 
     for page, media in media_pages.items():
-        filenames = gpp.get_filenames_from_media(media)
-        print("listing page({}) media({})".format(page, filenames))
+        fileswithdates = gpp.get_filenames_and_createdats_from_media(media)
+        for filewithdate in fileswithdates:
+          print("listing page({}) filename({}) date({})".format(page, filewithdate["filename"], filewithdate["created_at"]))
+
 
         if args.action.startswith("download"):
             filepath = "{}".format(args.download_path)
-            ids = gpp.get_ids_from_media(media)
-            gpp.download_media_ids(ids, filepath, args.action, progress_mode=args.progress_mode)
+            ids_with_dates = gpp.get_ids_and_dates_from_media(media)
+            gpp.download_media_ids(ids_with_dates, filepath, args.action, progress_mode=args.progress_mode)
 
 
 if __name__ == "__main__":
