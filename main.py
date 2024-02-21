@@ -82,13 +82,13 @@ class GoProPlus:
         return err
     
     def get_ids_and_dates_from_media(self, media):
-        return [{"id": x["id"], "created_at": x["created_at"]} for x in media]
+        return [{"id": x["id"], "captured_at": x["captured_at"]} for x in media]
 
-    def get_createdats_from_media(self, media):
-        return [x["created_at"] for x in media]
+    def get_capturedats_from_media(self, media):
+        return [x["captured_at"] for x in media]
 
-    def get_filenames_and_createdats_from_media(self, media):
-        return [{"filename": x["filename"], "created_at": x["created_at"]} for x in media]
+    def get_filenames_and_capturedats_from_media(self, media):
+        return [{"filename": x["filename"], "captured_at": x["captured_at"]} for x in media]
 
     def get_media(self, start_page=1, pages=sys.maxsize, per_page=30):
         media_url = "{}/media/search".format(self.host)
@@ -109,7 +109,7 @@ class GoProPlus:
         while True:
             params = {
                 # for all fields check some requests on GoProPlus website requests
-                "fields": "id,created_at,content_title,filename,file_extension",
+                "fields": "id,captured_at,content_title,filename,file_extension",
                 "per_page": per_page,
                 "page": current_page,
                 "type": "",
@@ -216,14 +216,14 @@ class GoProPlus:
                       # Display on the screen that the download was successfully completed
                       print(f'\n{file_name} download successful!')
 
-                      # Set the created_date of the file with item['created_at']
-                      created_date = item['created_at']
+                      # Set the captured_date of the file with item['captured_at']
+                      captured_date = item['captured_at']
 
                       # Parse the date string to a datetime object
-                      created_date = parse(created_date)
+                      captured_date = parse(captured_date)
 
                       # Convert the datetime object to a timestamp
-                      timestamp = created_date.timestamp()
+                      timestamp = captured_date.timestamp()
 
                       # Set the access time and the modification time
                       os.utime(file_path, (timestamp, timestamp))
@@ -299,9 +299,9 @@ def main():
         return -1
 
     for page, media in media_pages.items():
-        fileswithdates = gpp.get_filenames_and_createdats_from_media(media)
+        fileswithdates = gpp.get_filenames_and_capturedats_from_media(media)
         for filewithdate in fileswithdates:
-          print("listing page({}) filename({}) date({})".format(page, filewithdate["filename"], filewithdate["created_at"]))
+          print("listing page({}) filename({}) date({})".format(page, filewithdate["filename"], filewithdate["captured_at"]))
 
 
         if args.action.startswith("download"):
