@@ -1,5 +1,7 @@
 import os
 import sys
+import time
+from dateutil.parser import parse
 import json
 import argparse
 
@@ -78,12 +80,15 @@ class GoProPlus:
         except:
             err = resp.text
         return err
+    
+    def get_ids_and_dates_from_media(self, media):
+        return [{"id": x["id"], "created_at": x["created_at"]} for x in media]
 
-    def get_ids_from_media(self, media):
-        return [x["id"] for x in media]
+    def get_createdats_from_media(self, media):
+        return [x["created_at"] for x in media]
 
-    def get_filenames_from_media(self, media):
-        return [x["filename"] for x in media]
+    def get_filenames_and_createdats_from_media(self, media):
+        return [{"filename": x["filename"], "created_at": x["created_at"]} for x in media]
 
     def get_media(self, start_page=1, pages=sys.maxsize, per_page=30):
         media_url = "{}/media/search".format(self.host)
@@ -130,12 +135,12 @@ class GoProPlus:
 
         return output_media
 
-    def download_media_ids(self, ids, filepath, action="download", progress_mode="inline", resolution="source"):
+    def download_media_ids(self, ids_with_dates, filepath, action="download", progress_mode="inline", resolution="source"):
         # for each id we need to make a request to get the download url
         results = []
 
-        for id in ids:
-            url = "{}/media/{}/download".format(self.host, id)
+        for item in ids_with_dates:
+            url = "{}/media/{}/download".format(self.host, item['id'])
             params = {
                 "access_token": self.auth_token,
             }
@@ -168,86 +173,95 @@ class GoProPlus:
                 results.append({'id': id, 'status': 'skipped', 'file': file_path})
                 continue
             else:
-                # Try to download the file using streaming
-                try:
-                    # Create a response object with streaming enabled
-                    r = requests.get(file_url, stream=True)
+              # Try to download the file using streaming
+              try:
+                  # Create a response object with streaming enabled
+                  r = requests.get(file_url, stream=True)
 
-                    # Check if the response status code is 200 (OK)
-                    if r.status_code == 200:
-                        # Open the file in binary write mode
-                        with open(file_path, 'wb') as f:
-                            # Define the chunk size in bytes
-                            piece_size = 1024 * 1024
+                  # Check if the response status code is 200 (OK)
+                  if r.status_code == 200:
+                      # Open the file in binary write mode
+                      with open(file_path, 'wb') as f:
+                          # Define the chunk size in bytes
+                          piece_size = 1024 * 1024
 
-                            # Get the total file size in bytes from the response header
-                            total_size = int(r.headers.get('content-length', 0))
+                          # Get the total file size in bytes from the response header
+                          total_size = int(r.headers.get('content-length', 0))
 
-                            # Initialize a variable to store the downloaded size in bytes
-                            downloaded_size = 0
+                          # Initialize a variable to store the downloaded size in bytes
+                          downloaded_size = 0
 
-                            # Traverse the chunks of the response
-                            for chunk in r.iter_content(piece_size):
-                                # Write the chunk to the file
-                                f.write(chunk)
+                          # Traverse the chunks of the response
+                          for chunk in r.iter_content(piece_size):
+                              # Write the chunk to the file
+                              f.write(chunk)
 
-                                # Increase the downloaded size by the size of the chunk
-                                downloaded_size += len(chunk)
+                              # Increase the downloaded size by the size of the chunk
+                              downloaded_size += len(chunk)
 
-                                # Calculate the progress percentage
-                                percentage = int(downloaded_size * 100 / total_size)
+                              # Calculate the progress percentage
+                              percentage = int(downloaded_size * 100 / total_size)
 
-                                if progress_mode == "inline":
-                                    # Display the download progress on the screen
-                                    print(f'\rDownloading {file_name}: {percentage}%', end='')
+                              if progress_mode == "inline":
+                                # Display the download progress on the screen
+                                print(f'\rDownloading {file_name}: {percentage}%', end='')
 
-                                if progress_mode == "newline":
-                                    # Display the download progress on the screen
-                                    print(f'Downloading {file_name}: {percentage}%')
+                              if progress_mode == "newline":
+                                # Display the download progress on the screen
+                                print(f'Downloading {file_name}: {percentage}%')
 
-                        # Close the response object
-                        r.close()
+                      # Close the response object
+                      r.close()
 
-                        # Display on the screen that the download was successfully completed
-                        print(f'{file_name} download successful!')
+                      # Display on the screen that the download was successfully completed
+                      print(f'\n{file_name} download successful!')
 
-                        # Add a result with a success status to the results list
-                        results.append({'id': id, 'status': 'sucesso', 'file': file_path})
+                      # Set the created_date of the file with item['created_at']
+                      created_date = item['created_at']
 
-                        # upload to s3
-                        if action == 'download-upload':
-                            print(f'Uploading: {file_path} to {os.environ["S3_BUCKET_NAME"]}')
-                            S3_ENDPOINT_URL = "https://" + os.environ["S3_ENDPOINT_URL"]
-                            b2session = boto3.session.Session(aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-                                                              aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
-                            b2 = b2session.resource(service_name='s3', endpoint_url=S3_ENDPOINT_URL)
+                      # Parse the date string to a datetime object
+                      created_date = parse(created_date)
 
-                            b2.Object(os.environ["S3_BUCKET_NAME"], file_name).upload_file(file_path,
-                                                                                           ExtraArgs={
-                                                                                               'ContentType': 'text/pdf'},
-                                                                                           Config=transfer_config,
-                                                                                           Callback=ProgressPercentage(
-                                                                                               file_path)
-                                                                                           )
+                      # Convert the datetime object to a timestamp
+                      timestamp = created_date.timestamp()
 
-                            # Delete local file
-                            print(f"\n")
-                            print(f'Deleting local file: {file_path}')
-                            os.remove(file_path)
+                      # Set the access time and the modification time
+                      os.utime(file_path, (timestamp, timestamp))
 
-                    else:
-                        # Display on the screen that the download failed due to the status code
-                        print(f'{file_name} could not be downloaded: status code {r.status_code}')
+                      # Add a result with a success status to the results list
+                      results.append({'id': item['id'], 'status': 'sucesso', 'file': file_path})
 
-                        # Add a result with an error status to the results list
-                        results.append({'id': id, 'status': 'erro', 'reason': f'status code {r.status_code}'})
+                      # upload to s3
+                      if action == 'download-upload':
+                        print(f'Uploading: {file_path} to {os.environ["S3_BUCKET_NAME"]}')
+                        S3_ENDPOINT_URL = "https://" + os.environ["S3_ENDPOINT_URL"]
+                        b2session = boto3.session.Session(aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"], aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
+                        b2 = b2session.resource(service_name='s3', endpoint_url=S3_ENDPOINT_URL)
 
-                except Exception as e:
-                    # Display on the screen that the download failed due to an exception
-                    print(f'{file_name} could not be downloaded: {e}')
+                        b2.Object(os.environ["S3_BUCKET_NAME"], file_name).upload_file(file_path,
+                                ExtraArgs={'ContentType': 'text/pdf'},
+                                Config=transfer_config,
+                                Callback=ProgressPercentage(file_path)
+                                )
 
-                    # Add a result with an error status to the results list
-                    results.append({'id': id, 'status': 'error', 'reason': str(e)})
+                        # Delete local file
+                        print(f"\n")
+                        print(f'Deleting local file: {file_path}')
+                        os.remove(file_path)
+
+                  else:
+                      # Display on the screen that the download failed due to the status code
+                      print(f'{file_name} could not be downloaded: status code {r.status_code}')
+
+                      # Add a result with an error status to the results list
+                      results.append({'id': id, 'status': 'erro', 'reason': f'código de status {r.status_code}'})
+
+              except Exception as e:
+                  # Display on the screen that the download failed due to an exception
+                  print(f'{file_name} could not be downloaded: {e}')
+
+                  # Add a result with an error status to the results list
+                  results.append({'id': item['id'], 'status': 'erro', 'reason': str(e)})
 
 
 def main():
@@ -285,13 +299,15 @@ def main():
         return -1
 
     for page, media in media_pages.items():
-        filenames = gpp.get_filenames_from_media(media)
-        print("listing page({}) media({})".format(page, filenames))
+        fileswithdates = gpp.get_filenames_and_createdats_from_media(media)
+        for filewithdate in fileswithdates:
+          print("listing page({}) filename({}) date({})".format(page, filewithdate["filename"], filewithdate["created_at"]))
+
 
         if args.action.startswith("download"):
             filepath = "{}".format(args.download_path)
-            ids = gpp.get_ids_from_media(media)
-            gpp.download_media_ids(ids, filepath, args.action, progress_mode=args.progress_mode,
+            ids_with_dates = gpp.get_ids_and_dates_from_media(media)
+            gpp.download_media_ids(ids_with_dates, filepath, args.action, progress_mode=args.progress_mode,
                                    resolution=args.resolution)
 
 
