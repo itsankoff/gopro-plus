@@ -14,12 +14,13 @@ import boto3.session
 
 from boto3.s3.transfer import TransferConfig
 
-transfer_config = TransferConfig(multipart_threshold=1024 * 25, 
-                        max_concurrency=10,
-                        multipart_chunksize=1024 * 25,
-                        use_threads=True)
+transfer_config = TransferConfig(multipart_threshold=1024 * 25,
+                                 max_concurrency=10,
+                                 multipart_chunksize=1024 * 25,
+                                 use_threads=True)
 
 sys.stdout = open(1, "w", encoding="utf-8", closefd=False)
+
 
 def handler(signum, frame):
     print("\ninterrupting the process. do you really want to exit? (y/n) ")
@@ -31,26 +32,29 @@ def handler(signum, frame):
     else:
         print("continue executing...")
 
+
 signal.signal(signal.SIGINT, handler)
 
-class ProgressPercentage(object):
-        def __init__(self, filename):
-            self._filename = filename
-            self._size = float(os.path.getsize(filename))
-            self._seen_so_far = 0
-            self._lock = threading.Lock()
 
-        def __call__(self, bytes_amount):
-            # To simplify we'll assume this is hooked up
-            # to a single filename.
-            with self._lock:
-                self._seen_so_far += bytes_amount
-                percentage = (self._seen_so_far / self._size) * 100
-                sys.stdout.write(
-                    "\r%s  %s / %s  (%.2f%%)" % (
-                        self._filename, self._seen_so_far, self._size,
-                        percentage))
-                sys.stdout.flush()
+class ProgressPercentage(object):
+    def __init__(self, filename):
+        self._filename = filename
+        self._size = float(os.path.getsize(filename))
+        self._seen_so_far = 0
+        self._lock = threading.Lock()
+
+    def __call__(self, bytes_amount):
+        # To simplify we'll assume this is hooked up
+        # to a single filename.
+        with self._lock:
+            self._seen_so_far += bytes_amount
+            percentage = (self._seen_so_far / self._size) * 100
+            sys.stdout.write(
+                "\r%s  %s / %s  (%.2f%%)" % (
+                    self._filename, self._seen_so_far, self._size,
+                    percentage))
+            sys.stdout.flush()
+
 
 class GoProPlus:
     def __init__(self, auth_token):
@@ -131,8 +135,7 @@ class GoProPlus:
 
         return output_media
 
-
-    def download_media_ids(self, ids_with_dates, filepath, action="download", progress_mode="inline"):
+    def download_media_ids(self, ids_with_dates, filepath, action="download", progress_mode="inline", resolution="source"):
         # for each id we need to make a request to get the download url
         results = []
 
@@ -148,114 +151,136 @@ class GoProPlus:
             }
 
             resp = requests.get(url, params=params, headers=headers).json()
-            file_url = resp['_embedded']['files'][0]['url']
-            file_name = file_url.split('/')[-1]
-            file_name = resp['filename']
 
+            file_url = None
+            if resolution == "1080p":
+                file_url = resp['_embedded']['files'][0]['url']
+            if resolution == "source":
+                # Extract the URL for the label=source item under variations
+                for variation in resp['_embedded']['variations']:
+                    if variation['label'] == 'source':
+                        file_url = variation['url']
+                        break
+            else:
+                print(f'Invalid resolution. {resolution} not found')
+
+            file_name = resp['filename']
             file_path = os.path.join(filepath, file_name)
 
-            # Try to download the file using streaming
-            try:
-                # Create a response object with streaming enabled
-                r = requests.get(file_url, stream=True)
+            # See if file exists:
+            if os.path.exists(file_path):
+                print(f'{file_name} already exists. skipping...')
+                results.append({'id': id, 'status': 'skipped', 'file': file_path})
+                continue
+            else:
+              # Try to download the file using streaming
+              try:
+                  # Create a response object with streaming enabled
+                  r = requests.get(file_url, stream=True)
 
-                # Check if the response status code is 200 (OK)
-                if r.status_code == 200:
-                    # Open the file in binary write mode
-                    with open(file_path, 'wb') as f:
-                        # Define the chunk size in bytes
-                        piece_size = 1024 * 1024
+                  # Check if the response status code is 200 (OK)
+                  if r.status_code == 200:
+                      # Open the file in binary write mode
+                      with open(file_path, 'wb') as f:
+                          # Define the chunk size in bytes
+                          piece_size = 1024 * 1024
 
-                        # Get the total file size in bytes from the response header
-                        total_size = int(r.headers.get('content-length', 0))
+                          # Get the total file size in bytes from the response header
+                          total_size = int(r.headers.get('content-length', 0))
 
-                        # Initialize a variable to store the downloaded size in bytes
-                        downloaded_size = 0
+                          # Initialize a variable to store the downloaded size in bytes
+                          downloaded_size = 0
 
-                        # Traverse the chunks of the response
-                        for chunk in r.iter_content(piece_size):
-                            # Write the chunk to the file
-                            f.write(chunk)
+                          # Traverse the chunks of the response
+                          for chunk in r.iter_content(piece_size):
+                              # Write the chunk to the file
+                              f.write(chunk)
 
-                            # Increase the downloaded size by the size of the chunk
-                            downloaded_size += len(chunk)
+                              # Increase the downloaded size by the size of the chunk
+                              downloaded_size += len(chunk)
 
-                            # Calculate the progress percentage
-                            percentage = int(downloaded_size * 100 / total_size)
+                              # Calculate the progress percentage
+                              percentage = int(downloaded_size * 100 / total_size)
 
-                            if progress_mode == "inline":
-                              # Display the download progress on the screen
-                              print(f'\rDownloading {file_name}: {percentage}%', end='')
+                              if progress_mode == "inline":
+                                # Display the download progress on the screen
+                                print(f'\rDownloading {file_name}: {percentage}%', end='')
 
-                            if progress_mode == "newline":
-                              # Display the download progress on the screen
-                              print(f'Downloading {file_name}: {percentage}%')
+                              if progress_mode == "newline":
+                                # Display the download progress on the screen
+                                print(f'Downloading {file_name}: {percentage}%')
 
-                    # Close the response object
-                    r.close()
+                      # Close the response object
+                      r.close()
 
-                    # Display on the screen that the download was successfully completed
-                    print(f'\n{file_name} download successful!')
+                      # Display on the screen that the download was successfully completed
+                      print(f'\n{file_name} download successful!')
 
-                    # Set the created_date of the file with item['created_at']
-                    created_date = item['created_at']
+                      # Set the created_date of the file with item['created_at']
+                      created_date = item['created_at']
 
-                    # Parse the date string to a datetime object
-                    created_date = parse(created_date)
+                      # Parse the date string to a datetime object
+                      created_date = parse(created_date)
 
-                    # Convert the datetime object to a timestamp
-                    timestamp = created_date.timestamp()
+                      # Convert the datetime object to a timestamp
+                      timestamp = created_date.timestamp()
 
-                    # Set the access time and the modification time
-                    os.utime(file_path, (timestamp, timestamp))
+                      # Set the access time and the modification time
+                      os.utime(file_path, (timestamp, timestamp))
 
-                    # Add a result with a success status to the results list
-                    results.append({'id': item['id'], 'status': 'sucesso', 'file': file_path})
+                      # Add a result with a success status to the results list
+                      results.append({'id': item['id'], 'status': 'sucesso', 'file': file_path})
 
-                    # upload to s3
-                    if action == 'download-upload':
-                      print(f'Uploading: {file_path} to {os.environ["S3_BUCKET_NAME"]}')
-                      S3_ENDPOINT_URL = "https://" + os.environ["S3_ENDPOINT_URL"]
-                      b2session = boto3.session.Session(aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"], aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
-                      b2 = b2session.resource(service_name='s3', endpoint_url=S3_ENDPOINT_URL)
-                      
-                      b2.Object(os.environ["S3_BUCKET_NAME"], file_name).upload_file(file_path,
-                              ExtraArgs={'ContentType': 'text/pdf'},
-                              Config=transfer_config,
-                              Callback=ProgressPercentage(file_path)
-                              )
-                      
-                      # Delete local file
-                      print(f"\n")
-                      print(f'Deleting local file: {file_path}')
-                      os.remove(file_path)
+                      # upload to s3
+                      if action == 'download-upload':
+                        print(f'Uploading: {file_path} to {os.environ["S3_BUCKET_NAME"]}')
+                        S3_ENDPOINT_URL = "https://" + os.environ["S3_ENDPOINT_URL"]
+                        b2session = boto3.session.Session(aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"], aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
+                        b2 = b2session.resource(service_name='s3', endpoint_url=S3_ENDPOINT_URL)
 
-                else:
-                    # Display on the screen that the download failed due to the status code
-                    print(f'{file_name} could not be downloaded: status code {r.status_code}')
+                        b2.Object(os.environ["S3_BUCKET_NAME"], file_name).upload_file(file_path,
+                                ExtraArgs={'ContentType': 'text/pdf'},
+                                Config=transfer_config,
+                                Callback=ProgressPercentage(file_path)
+                                )
 
-                    # Add a result with an error status to the results list
-                    results.append({'id': id, 'status': 'erro', 'reason': f'código de status {r.status_code}'})
+                        # Delete local file
+                        print(f"\n")
+                        print(f'Deleting local file: {file_path}')
+                        os.remove(file_path)
 
-            except Exception as e:
-                # Display on the screen that the download failed due to an exception
-                print(f'{file_name} could not be downloaded: {e}')
+                  else:
+                      # Display on the screen that the download failed due to the status code
+                      print(f'{file_name} could not be downloaded: status code {r.status_code}')
 
-                # Add a result with an error status to the results list
-                results.append({'id': item['id'], 'status': 'erro', 'reason': str(e)})
+                      # Add a result with an error status to the results list
+                      results.append({'id': id, 'status': 'erro', 'reason': f'código de status {r.status_code}'})
+
+              except Exception as e:
+                  # Display on the screen that the download failed due to an exception
+                  print(f'{file_name} could not be downloaded: {e}')
+
+                  # Add a result with an error status to the results list
+                  results.append({'id': item['id'], 'status': 'erro', 'reason': str(e)})
 
 
 def main():
     actions = ["list", "download"]
     progress_modes = ["inline", "newline", "noline"]
+    resolutions = ["1080p", "source"]
 
     parser = argparse.ArgumentParser(prog="gopro")
-    parser.add_argument("--action", help="action to execute. supported actions: {}".format(",".join(actions)), default="download")
+    parser.add_argument("--action", help="action to execute. supported actions: {}".format(",".join(actions)),
+                        default="download")
     parser.add_argument("--pages", nargs="?", help="number of pages to iterate over", type=int, default=sys.maxsize)
     parser.add_argument("--per-page", nargs="?", help="number of items per page", type=int, default=30)
     parser.add_argument("--start-page", nargs="?", help="starting page", type=int, default=1)
     parser.add_argument("--download-path", help="path to store the download zip", default="./download")
-    parser.add_argument("--progress-mode", help="showing download progress. supported modes: {}".format(",".join(progress_modes)), default=progress_modes[0])
+    parser.add_argument("--progress-mode",
+                        help="showing download progress. supported modes: {}".format(",".join(progress_modes)),
+                        default=progress_modes[0])
+    parser.add_argument("--resolution", help="resolution to download, use: {}".format(",".join(resolutions)),
+                        default=resolutions[1])
 
     args = parser.parse_args()
 
@@ -282,7 +307,8 @@ def main():
         if args.action.startswith("download"):
             filepath = "{}".format(args.download_path)
             ids_with_dates = gpp.get_ids_and_dates_from_media(media)
-            gpp.download_media_ids(ids_with_dates, filepath, args.action, progress_mode=args.progress_mode)
+            gpp.download_media_ids(ids_with_dates, filepath, args.action, progress_mode=args.progress_mode,
+                                   resolution=args.resolution)
 
 
 if __name__ == "__main__":
