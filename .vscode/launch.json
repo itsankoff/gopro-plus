@@ -14,11 +14,13 @@
       "envFile": "${workspaceFolder}/.env",
       "args":[
         "--per-page",
-        "20",
+        "30",
         "--start-page",
-        "14",
+        "7",
         "--pages",
-        "1"
+        "1",
+        "--download-path",
+        "/Volumes/Elements/gopro"
       ]
     }
   ]

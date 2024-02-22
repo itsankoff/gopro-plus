@@ -161,6 +161,8 @@ class GoProPlus:
                     if variation['label'] == 'source':
                         file_url = variation['url']
                         break
+                    else:
+                        file_url = resp['_embedded']['files'][0]['url']
             else:
                 print(f'Invalid resolution. {resolution} not found')
 
