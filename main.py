@@ -81,15 +81,9 @@ class GoProPlus:
             err = resp.text
         return err
     
-    def get_ids_and_dates_from_media(self, media):
-        return [{"id": x["id"], "captured_at": x["captured_at"]} for x in media]
-
-    def get_capturedats_from_media(self, media):
-        return [x["captured_at"] for x in media]
-
-    def get_filenames_and_capturedats_from_media(self, media):
-        return [{"filename": x["filename"], "captured_at": x["captured_at"]} for x in media]
-
+    def get_media_data(self, media):
+        return [{"filename": x["filename"], "file_extension": x["file_extension"], "id": x["id"], "captured_at": x["captured_at"]} for x in media]
+    
     def get_media(self, start_page=1, pages=sys.maxsize, per_page=30):
         media_url = "{}/media/search".format(self.host)
 
@@ -167,6 +161,9 @@ class GoProPlus:
                 print(f'Invalid resolution. {resolution} not found')
 
             file_name = resp['filename']
+            # if filename is '' then use the item['id'] as filename
+            if file_name == '':
+                file_name = item['id'] + '.' + item['file_extension']
             file_path = os.path.join(filepath, file_name)
 
             # See if file exists:
@@ -301,15 +298,14 @@ def main():
         return -1
 
     for page, media in media_pages.items():
-        fileswithdates = gpp.get_filenames_and_capturedats_from_media(media)
-        for filewithdate in fileswithdates:
+        mediadata = gpp.get_media_data(media)
+        for filewithdate in mediadata:
           print("listing page({}) filename({}) date({})".format(page, filewithdate["filename"], filewithdate["captured_at"]))
 
 
         if args.action.startswith("download"):
             filepath = "{}".format(args.download_path)
-            ids_with_dates = gpp.get_ids_and_dates_from_media(media)
-            gpp.download_media_ids(ids_with_dates, filepath, args.action, progress_mode=args.progress_mode,
+            gpp.download_media_ids(mediadata, filepath, args.action, progress_mode=args.progress_mode,
                                    resolution=args.resolution)
 
 
