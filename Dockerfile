@@ -15,5 +15,10 @@ ENV PAGES "1000000"
 ENV PER_PAGE "15"
 ENV DOWNLOAD_PATH "./download"
 ENV PROGRESS_MODE "noline"
+ENV RESOLUTION "source"
+ENV S3_ENDPOINT_URL "s3.us-west-2.amazonaws.com"
+ENV AWS_ACCESS_KEY_ID "<AWS_ACCESS_KEY_ID>"
+ENV AWS_SECRET_ACCESS_KEY "<AWS_SECRET_ACCESS_KEY>"
+ENV S3_BUCKET_NAME "<S3_BUCKET_NAME>"
 
-CMD ["sh", "-c", "python3 main.py --action $ACTION --start-page $START_PAGE --pages $PAGES --per-page $PER_PAGE --download-path $DOWNLOAD_PATH --progress-mode $PROGRESS_MODE"]
+CMD ["sh", "-c", "python3 main.py --action $ACTION --start-page $START_PAGE --pages $PAGES --per-page $PER_PAGE --download-path $DOWNLOAD_PATH --progress-mode $PROGRESS_MODE --resolution $RESOLUTION"]
