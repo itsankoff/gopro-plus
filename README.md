@@ -27,7 +27,11 @@ Supported Docker ENV variable options:
         Default `./download` in current working directory.
 * `-e PROGRESS_MODE=<inline|newline|noline>` - (*optional*) specify printing mode
         for download progress. Default `noline`.
-
+* `-e S3_ENDPOINT_URL=<s3 endpoint url>` - (*optional*) specify the S3 endpoint URL for S3 upload.
+        Default `s3.us-west-2.amazonaws.com`
+* `-e S3_BUCKET_NAME=<s3 bucket name>` - (*optional*) specify the S3 bucket name for S3 upload.
+* `-e AWS_ACCESS_KEY_ID=<aws access key id>` - (*optional*) specify the AWS_ACCESS_KEY_ID for S3 upload.
+* `-e AWS_SECRET_ACCESS_KEY=<aws secret access key>` - (*optional*) specify the AWS_SECRET_ACCESS_KEY for S3 upload.
 
 ## Prerequisites (Local environment)
 
