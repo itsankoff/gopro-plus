@@ -76,7 +76,6 @@ class GoProPlus:
                 "fields": "id,created_at,content_title,filename,file_extension",
                 "per_page": per_page,
                 "page": current_page,
-                "type": "",
             }
 
             resp = requests.get(media_url, params=params, headers=headers)
