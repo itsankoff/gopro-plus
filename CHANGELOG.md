@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.4.3
+* Fix authentication by adding mandatory `USER_ID` and forcing requests using cookies instead of headers
+* Adjust local env using USER_ID
+* Makefile help section
+* Dockerfile deprecation warning fixed around env variable setup
+
 ## 1.3.3
 * Link Dockerfile ENV variables to execution script
 
