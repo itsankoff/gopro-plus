@@ -6,6 +6,7 @@ PAGES ?= 1
 PER_PAGE ?= 2
 DOWNLOAD_PATH ?= ./download
 AUTH_TOKEN := $(shell echo $$AUTH_TOKEN)
+USER_ID := $(shell echo $$USER_ID)
 
 # Docker container
 CONTAINER_NAME ?= gopro
@@ -20,6 +21,7 @@ run: clean
 	@docker run -d --name $(CONTAINER_NAME) \
 		-v ./download:/app/download \
 		-e AUTH_TOKEN=$(AUTH_TOKEN) \
+		-e USER_ID=$(USER_ID) \
 		-e ACTION=$(ACTION) \
 		-e PAGES=$(PAGES) \
 		-e PER_PAGE=$(PER_PAGE) \
