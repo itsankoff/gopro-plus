@@ -1,4 +1,4 @@
-# GoPro Plus
+# GoPro Plus Downloader
 
 GoPro Plus is an open-source project designed to enable users to interact with
 the GoPro Plus media library from the command line. This project aims to provide
