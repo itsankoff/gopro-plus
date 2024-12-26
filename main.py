@@ -2,11 +2,10 @@ import os
 import sys
 import json
 import argparse
-
 import signal
 import readchar
-
 import requests
+
 
 sys.stdout = open(1, "w", encoding="utf-8", closefd=False)
 
@@ -24,19 +23,36 @@ signal.signal(signal.SIGINT, handler)
 
 
 class GoProPlus:
-    def __init__(self, auth_token):
+    def __init__(self, auth_token, user_id):
         self.base = "api.gopro.com"
         self.host = "https://{}".format(self.base)
         self.auth_token = auth_token
+        self.user_id = user_id
 
-    def validate(self):
-        headers = {
-            "Authorization": "Bearer {}".format(self.auth_token),
+    def default_headers(self):
+        return {
+            "Accept": "application/vnd.gopro.jk.media+json; version=2.0.0",
+            "Accept-Language": "en-US,en;q=0.9,bg;q=0.8,es;q=0.7",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         }
 
-        resp = requests.get("{}/search/media/labels/top?count=1".format(self.host), headers=headers)
+    def default_cookies(self):
+        return {
+            "gp_access_token": self.auth_token,
+            "gp_user_id": self.user_id,
+        }
+
+    def validate(self):
+        url = f"{self.host}/media/user"
+        resp = requests.get(
+                url,
+                headers=self.default_headers(),
+                cookies=self.default_cookies(),
+        )
+
         if resp.status_code != 200:
-            print("failed to validate auth token. issue a new one")
+            print("Failed to validate auth token. Issue a new one.")
+            print(f"Status code: {resp.status_code}")
             return False
 
         return True
@@ -55,17 +71,7 @@ class GoProPlus:
         return [x["filename"] for x in media]
 
     def get_media(self, start_page=1, pages=sys.maxsize, per_page=30):
-        media_url = "{}/media/search".format(self.host)
-
-        headers = {
-            "Authority": self.base,
-            "Accept-Charset": "utf-8",
-            "Accept": "application/vnd.gopro.jk.media+json; version=2.0.0",
-            "Origin": self.host,
-            "Referer": "{}/".format(self.host),
-            "Content-Type": "application/json",
-            "Authorization": "Bearer {}".format(self.auth_token),
-        }
+        url= "{}/media/search".format(self.host)
 
         output_media = {}
         total_pages = 0
@@ -73,13 +79,17 @@ class GoProPlus:
         while True:
             params = {
                 # for all fields check some requests on GoProPlus website requests
-                "fields": "id,created_at,content_title,filename,file_extension",
                 "per_page": per_page,
                 "page": current_page,
-                "type": "",
+                "fields": "id,created_at,content_title,filename,file_extension",
             }
 
-            resp = requests.get(media_url, params=params, headers=headers)
+            resp = requests.get(
+                url,
+                params=params,
+                headers=self.default_headers(),
+                cookies=self.default_cookies()
+            )
             if resp.status_code != 200:
                 err = self.parse_error(resp)
                 print("failed to get media for page {}: {}. try renewing the auth token".format(current_page, err))
@@ -101,17 +111,19 @@ class GoProPlus:
 
 
     def download_media_ids(self, ids, filepath, progress_mode="inline"):
-        download_url = "{}/media/x/zip/source".format(self.host)
+        url = "{}/media/x/zip/source".format(self.host)
         params = {
             "ids": ",".join(ids),
             "access_token": self.auth_token,
         }
 
-        headers = {
-            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        }
+        resp = requests.get(
+            url,
+            params=params,
+            headers=self.default_headers(),
+            cookies=self.default_cookies(),
+            stream=True)
 
-        resp = requests.get(download_url, params=params, headers=headers, stream=True)
         if resp.status_code != 200:
             print("request failed with status code: {} and error: {}".format(resp.status_code, self.parse_error(resp)))
             return False
@@ -156,8 +168,13 @@ def main():
         print("invalid AUTH_TOKEN env variable set")
         return
 
+    if "USER_ID" not in os.environ:
+        print("invalid USER_ID env variable set")
+        return
+
     auth_token = os.environ["AUTH_TOKEN"]
-    gpp = GoProPlus(auth_token)
+    user_id = os.environ["USER_ID"]
+    gpp = GoProPlus(auth_token, user_id)
     if not gpp.validate():
         return -1
 
