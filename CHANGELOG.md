@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 1.5.3
+* Fix missing download directory on the docker container
+* Add entrypoint.sh script as a startup script for Docker usage
+* Update README.md with the new usage that support host directory download
+
 ## 1.4.3
 * Fix authentication by adding mandatory `USER_ID` and forcing requests using cookies instead of headers
 * Adjust local env using USER_ID

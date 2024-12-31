@@ -1,19 +1,33 @@
 # GoPro Plus Downloader
 
+If you’re a GoPro Plus user, you’ve probably felt the frustration of trying to download
+your media in bulk, **only to be stopped by the 25-file limit**. This arbitrary restriction
+makes it tedious 😤😡 to migrate your content to other platforms like
+Google Drive, Dropbox, or your self-hosted NAS (e.g. Synology).
+
 GoPro Plus is an open-source project designed to enable users to interact with
 the GoPro Plus media library from the command line. This project aims to provide
 a convenient way to access and manage your GoPro media without the need
 to use the web interface.
 
-**GoPro Plus supports downloading more than 25 media files at a time which is a
-tedious 🤦 limitation enforced by GoPro Media Library website.**
-
  🐳 Docker hub: https://hub.docker.com/r/itsankoff/gopro
 
 ## Usage (Docker environment)
-* `docker pull itsankoff/gopro`
-* `docker run -e AUTH_TOKEN=<gopro-auth-token> -e USER_ID=<gopro-user-id> itsankoff/gopro:latest`.
-    For `AUTH_TOKEN` and `USER_ID` check [Environment Variables](#environment-variables)
+
+For `<AUTH_TOKEN>` and `<USER_ID>` check [Environment Variables](#environment-variables)
+
+`docker run --name gopro-downloader -e AUTH_TOKEN='<AUTH_TOKEN>' -e USER_ID='<USER_ID>' -v </path/to/download>:/app/download itsankoff/gopro:latest`
+
+or
+
+```
+docker run \
+--name gopro-downloader
+-e AUTH_TOKEN='<AUTH_TOKEN>' \
+-e USER_ID='<USER_ID>' \
+-v </path/to/download>:/app/download \
+itsankoff/gopro:latest
+```
 
 Supported Docker ENV variable options:
 
@@ -27,8 +41,6 @@ Supported Docker ENV variable options:
 * `-e PAGES=<number>` - (*optional*) run the `<action>` over the specified number of pages.
         Default `1000000` which should mean max and will download the all cloud assets.
 * `-e PER_PAGE=<number>` - (*optional*) specify number of items per page. Default `15`.
-* `-e DOWNLOAD_PATH=<path>` - (*optional*) specify output path to download the assets.
-        Default `./download` in current working directory.
 * `-e PROGRESS_MODE=<inline|newline|noline>` - (*optional*) specify printing mode
         for download progress. Default `noline`.
 
@@ -74,7 +86,7 @@ Remember to replace `<gibberish_string_here>` with the actual token you copied f
 By following these steps, you should be able to effectively manage your GoPro Plus media directly from your command line using GoPro Plus.
 
 
-## Prerequisites (Local environment)
+## Local Development Prerequisites
 
 Before you can use GoPro Plus, you need to have the following installed:
 
@@ -84,7 +96,7 @@ Before you can use GoPro Plus, you need to have the following installed:
 * `docker` (*optional*)
 
 
-## Installation (Local environment)
+## Local Installation
 
 To run GoPro Plus locally on your machine, follow these steps:
 
@@ -96,10 +108,12 @@ To run GoPro Plus locally on your machine, follow these steps:
 * (*optional*) `echo "export AUTH_TOKEN='<gopro-auth-token (see below)>'" >> .envrc # assuming direnv usage`
 
 
-## Usage (Local environment)
+## Local Usage
+
 * `./gopro` - running the help section
 
-## Dev tooling
+## Dev Tooling
+
 * `Makefile` - check for convenient shortcuts
     * `build` - build a docker container
     * `release` - build and release the docker image for multiple platforms.
@@ -109,3 +123,7 @@ To run GoPro Plus locally on your machine, follow these steps:
     * `clean` - stop and remove spawned containers
 
 * `Dockerfile` - base configuration for the docker image
+
+## Troubleshooting
+
+* Docker logs `docker logs gopro-downloader`
