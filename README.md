@@ -10,7 +10,9 @@ the GoPro Plus media library from the command line. This project aims to provide
 a convenient way to access and manage your GoPro media without the need
 to use the web interface.
 
- 🐳 Docker hub: https://hub.docker.com/r/itsankoff/gopro
+* 🐳 Docker hub: https://hub.docker.com/r/itsankoff/gopro
+* 📝 Article: https://thetooth.io/blog/gopro-plus-downloader/
+
 
 ## Usage (Docker environment)
 
